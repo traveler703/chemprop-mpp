@@ -32,21 +32,21 @@ os.makedirs(MODELS_DIR, exist_ok=True)
 DEFAULT_DATASETS = {
     "esol": {
         "name": "ESOL",
-        "train": os.path.join(DATA_DIR, "esol_train.csv"),
-        "test": os.path.join(DATA_DIR, "esol_test.csv"),
+        "prefix": "esol",
     },
     "lipophilicity": {
         "name": "Lipophilicity",
-        "train": os.path.join(DATA_DIR, "lipo_train.csv"),
-        "test": os.path.join(DATA_DIR, "lipo_test.csv"),
+        "prefix": "lipo",
     },
 }
 
 
 def parse_args():
     p = argparse.ArgumentParser(description="Train Chemprop on a molecular property dataset")
-    p.add_argument("--dataset", choices=["esol", "lipophilicity", "all"], default="all",
+    p.add_argument("--dataset", choices=["esol", "lipophilicity", "lipo", "all"], default="all",
                    help="Dataset to train when train/test CSVs are not specified")
+    p.add_argument("--split", choices=["random", "scaffold"], default="random",
+                   help="Data split to use for default dataset files")
     p.add_argument("--train-data", default=os.path.join(DATA_DIR, "esol_train.csv"),
                    help="Path to training CSV")
     p.add_argument("--test-data", default=os.path.join(DATA_DIR, "esol_test.csv"),
@@ -327,9 +327,12 @@ def has_explicit_data_args() -> bool:
 def make_dataset_args(args, dataset_key: str, reset_outputs: bool = False):
     """Create an argparse namespace for one default dataset run."""
     dataset = DEFAULT_DATASETS[dataset_key]
+    split = args.split
+    train_name = f"{dataset['prefix']}_{split}_train.csv"
+    test_name = f"{dataset['prefix']}_{split}_test.csv"
     run_args = argparse.Namespace(**vars(args))
-    run_args.train_data = dataset["train"]
-    run_args.test_data = dataset["test"]
+    run_args.train_data = os.path.join(DATA_DIR, train_name)
+    run_args.test_data = os.path.join(DATA_DIR, test_name)
     if reset_outputs:
         run_args.output = None
         run_args.model_save = None
@@ -377,6 +380,8 @@ def run_training(args):
 
 def main():
     args = parse_args()
+    if args.dataset == "lipo":
+        args.dataset = "lipophilicity"
 
     if not has_explicit_data_args() and args.dataset == "all":
         for dataset_key in ("esol", "lipophilicity"):

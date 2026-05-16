@@ -42,8 +42,8 @@ MOLECULES = [
 DATASETS = {
     "esol": {
         "display_name": "ESOL Solubility",
-        "model_candidates": ["model_esol_train.pt", "model_esol_train_100.pt"],
-        "fallback_train_csv": os.path.join(DATA_DIR, "esol_train.csv"),
+        "model_candidates": ["model_esol_random_train.pt", "model_esol_train.pt", "model_esol_train_100.pt"],
+        "fallback_train_csv": os.path.join(DATA_DIR, "esol_random_train.csv"),
         "output_prefix": "",
         "target_label": "LogS",
         "value_key": "predicted_logS",
@@ -51,8 +51,8 @@ DATASETS = {
     },
     "lipo": {
         "display_name": "Lipophilicity",
-        "model_candidates": ["model_lipo_train.pt", "model_lipo_train_100.pt"],
-        "fallback_train_csv": os.path.join(DATA_DIR, "lipo_train.csv"),
+        "model_candidates": ["model_lipo_random_train.pt", "model_lipo_train.pt", "model_lipo_train_100.pt"],
+        "fallback_train_csv": os.path.join(DATA_DIR, "lipo_random_train.csv"),
         "output_prefix": "lipo_",
         "target_label": "logD",
         "value_key": "predicted_logD",
@@ -107,6 +107,10 @@ def load_model(dataset_key: str, config: dict):
     depth = int(ckpt_args.get("depth", 5))
     dropout = float(ckpt_args.get("dropout", 0.1))
     train_csv = ckpt_args.get("train_data", config["fallback_train_csv"])
+    if not os.path.exists(train_csv):
+        print(f"WARNING: Checkpoint train CSV not found: {train_csv}")
+        train_csv = config["fallback_train_csv"]
+        print(f"Using local fallback train CSV: {train_csv}")
 
     mp_block = BondMessagePassing(d_h=hidden_size, depth=depth, dropout=dropout)
     agg = MeanAggregation()

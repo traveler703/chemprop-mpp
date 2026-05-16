@@ -26,12 +26,12 @@ DATASETS = {
     "esol": {
         "display_name": "ESOL Solubility",
         "prefix": "esol",
-        "test_csv": os.path.join(DATA_DIR, "esol_test.csv"),
+        "test_csv": os.path.join(DATA_DIR, "esol_random_test.csv"),
     },
     "lipo": {
         "display_name": "Lipophilicity",
         "prefix": "lipo",
-        "test_csv": os.path.join(DATA_DIR, "lipo_test.csv"),
+        "test_csv": os.path.join(DATA_DIR, "lipo_random_test.csv"),
     },
 }
 
@@ -108,11 +108,11 @@ def run_dataset(dataset_key: str, config: dict) -> dict:
         print(f"Scale: {scale}% training data")
         print(f"{'─'*40}")
 
-        train_csv = os.path.join(DATA_DIR, f"{config['prefix']}_train_{scale}.csv")
+        train_csv = os.path.join(DATA_DIR, f"{config['prefix']}_random_train_{scale}.csv")
 
         if not os.path.exists(train_csv) or not os.path.exists(config["test_csv"]):
             print("  WARNING: Dataset files not found. Running prepare_data.py first...")
-            subprocess.run([sys.executable, os.path.join(PROJECT_ROOT, "scripts", "prepare_data.py")],
+            subprocess.run([sys.executable, os.path.join(PROJECT_ROOT, "scripts", "prepare_data.py"), "--split", "random"],
                            cwd=PROJECT_ROOT)
 
         scale_runs = []

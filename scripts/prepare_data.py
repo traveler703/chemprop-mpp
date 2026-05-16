@@ -13,6 +13,7 @@ Output (saved to ../data/):
 
 import argparse
 from io import StringIO
+import importlib
 import os
 import urllib.request
 
@@ -131,8 +132,82 @@ def parse_dataset(raw_csv: str, dataset_name: str) -> pd.DataFrame:
     return result.reset_index(drop=True)
 
 
-def create_splits(df: pd.DataFrame, dataset_name: str):
-    """Create train/test and data-scale splits."""
+def scaffold_of_smiles(smiles: str) -> str:
+    """Return Bemis-Murcko scaffold for a SMILES; empty if not available."""
+    try:
+        murcko_module = importlib.import_module("rdkit.Chem.Scaffolds")
+        MurckoScaffold = getattr(murcko_module, "MurckoScaffold")
+        return MurckoScaffold.MurckoScaffoldSmiles(smiles=smiles)
+    except Exception:
+        return ""
+
+
+def scaffold_train_test_split(df: pd.DataFrame, test_size: float, random_seed: int):
+    """Scaffold split: keep scaffolds separated between train/test."""
+    scaffold_to_indices = {}
+    for idx, smi in enumerate(df["smiles"].tolist()):
+        scaffold = scaffold_of_smiles(smi)
+        if not scaffold:
+            scaffold = f"NO_SCAFFOLD_{idx}"
+        scaffold_to_indices.setdefault(scaffold, []).append(idx)
+
+    scaffold_groups = list(scaffold_to_indices.values())
+    # Randomize tie order for reproducibility with a seed.
+    rng = np.random.RandomState(random_seed)
+    rng.shuffle(scaffold_groups)
+    # Place larger scaffolds first.
+    scaffold_groups.sort(key=len, reverse=True)
+
+    train_target = int(len(df) * (1.0 - test_size))
+    train_indices = []
+    test_indices = []
+
+    for group in scaffold_groups:
+        if len(train_indices) + len(group) <= train_target:
+            train_indices.extend(group)
+        else:
+            test_indices.extend(group)
+
+    # Edge case: if split collapses, fall back to random split.
+    if len(train_indices) == 0 or len(test_indices) == 0:
+        return train_test_split(df, test_size=test_size, random_state=random_seed)
+
+    train_df = df.iloc[train_indices].sample(frac=1.0, random_state=random_seed).reset_index(drop=True)
+    test_df = df.iloc[test_indices].sample(frac=1.0, random_state=random_seed).reset_index(drop=True)
+    return train_df, test_df
+
+
+def save_scale_subsets(train_df: pd.DataFrame, prefix: str, split_name: str):
+    """Save 20/50/80/100 subsets for one train split."""
+    rng = np.random.RandomState(RANDOM_SEED)
+    n_train = len(train_df)
+
+    for frac, label in [(0.2, "20"), (0.5, "50"), (0.8, "80")]:
+        n = max(10, int(n_train * frac))
+        idx = rng.choice(n_train, size=n, replace=False)
+        subset = train_df.iloc[idx].reset_index(drop=True)
+        split_subset_path = os.path.join(DATA_DIR, f"{prefix}_{split_name}_train_{label}.csv")
+        subset.to_csv(split_subset_path, index=False)
+        print(f"Saved {split_name} train_{label}%: {split_subset_path} ({len(subset)} rows)")
+
+        # Keep backward-compatible filenames for random split.
+        if split_name == "random":
+            legacy_subset_path = os.path.join(DATA_DIR, f"{prefix}_train_{label}.csv")
+            subset.to_csv(legacy_subset_path, index=False)
+            print(f"Saved legacy train_{label}%: {legacy_subset_path} ({len(subset)} rows)")
+
+    split_train_100 = os.path.join(DATA_DIR, f"{prefix}_{split_name}_train_100.csv")
+    train_df.to_csv(split_train_100, index=False)
+    print(f"Saved {split_name} train_100%: {split_train_100} ({len(train_df)} rows)")
+
+    if split_name == "random":
+        legacy_train_100 = os.path.join(DATA_DIR, f"{prefix}_train_100.csv")
+        train_df.to_csv(legacy_train_100, index=False)
+        print(f"Saved legacy train_100%: {legacy_train_100} ({len(train_df)} rows)")
+
+
+def create_splits(df: pd.DataFrame, dataset_name: str, split_name: str):
+    """Create train/test and data-scale splits for one split strategy."""
     os.makedirs(DATA_DIR, exist_ok=True)
     prefix = DATASETS[dataset_name]["prefix"]
 
@@ -141,40 +216,36 @@ def create_splits(df: pd.DataFrame, dataset_name: str):
     df.to_csv(full_path, index=False)
     print(f"Saved full dataset: {full_path} ({len(df)} rows)")
 
-    # Fixed train/test split (80/20)
-    train_df, test_df = train_test_split(
-        df, test_size=0.2, random_state=RANDOM_SEED
-    )
+    # 80/20 split
+    if split_name == "random":
+        train_df, test_df = train_test_split(df, test_size=0.2, random_state=RANDOM_SEED)
+    elif split_name == "scaffold":
+        train_df, test_df = scaffold_train_test_split(df, test_size=0.2, random_seed=RANDOM_SEED)
+    else:
+        raise ValueError(f"Unsupported split strategy: {split_name}")
 
-    train_path = os.path.join(DATA_DIR, f"{prefix}_train.csv")
-    test_path = os.path.join(DATA_DIR, f"{prefix}_test.csv")
+    train_path = os.path.join(DATA_DIR, f"{prefix}_{split_name}_train.csv")
+    test_path = os.path.join(DATA_DIR, f"{prefix}_{split_name}_test.csv")
     train_df.to_csv(train_path, index=False)
     test_df.to_csv(test_path, index=False)
     print(f"Saved train: {train_path} ({len(train_df)} rows)")
     print(f"Saved test:  {test_path} ({len(test_df)} rows)")
 
-    # Data-scale subsets (20%, 50%, 80% of training data)
-    # Use fixed random seed for reproducibility
-    rng = np.random.RandomState(RANDOM_SEED)
-    n_train = len(train_df)
+    # Keep backward-compatible random split filenames.
+    if split_name == "random":
+        legacy_train = os.path.join(DATA_DIR, f"{prefix}_train.csv")
+        legacy_test = os.path.join(DATA_DIR, f"{prefix}_test.csv")
+        train_df.to_csv(legacy_train, index=False)
+        test_df.to_csv(legacy_test, index=False)
+        print(f"Saved legacy train: {legacy_train} ({len(train_df)} rows)")
+        print(f"Saved legacy test:  {legacy_test} ({len(test_df)} rows)")
 
-    for frac, label in [(0.2, "20"), (0.5, "50"), (0.8, "80")]:
-        n = max(10, int(n_train * frac))  # at least 10 samples
-        idx = rng.choice(n_train, size=n, replace=False)
-        subset = train_df.iloc[idx].reset_index(drop=True)
-
-        out_path = os.path.join(DATA_DIR, f"{prefix}_train_{label}.csv")
-        subset.to_csv(out_path, index=False)
-        print(f"Saved train_{label}%: {out_path} ({len(subset)} rows)")
-
-    # Also save full training set as 100% reference
-    train_100_path = os.path.join(DATA_DIR, f"{prefix}_train_100.csv")
-    train_df.to_csv(train_100_path, index=False)
-    print(f"Saved train_100%: {train_100_path} ({len(train_df)} rows)")
+    save_scale_subsets(train_df, prefix, split_name)
 
     # Print summary stats
     print("\n=== Dataset Summary ===")
     print(f"Full dataset: {len(df)} molecules")
+    print(f"Split mode:   {split_name}")
     print(f"Training set: {len(train_df)} molecules")
     print(f"Test set:     {len(test_df)} molecules")
     print(f"Target range: [{df['target'].min():.3f}, {df['target'].max():.3f}]")
@@ -182,33 +253,42 @@ def create_splits(df: pd.DataFrame, dataset_name: str):
     print(f"Target std:   {df['target'].std():.3f}")
 
 
-def prepare_dataset(dataset_name: str):
+def prepare_dataset(dataset_name: str, split_name: str):
     """Download, parse, and split one dataset."""
     config = DATASETS[dataset_name]
     print("=" * 60)
-    print(f"{config['display_name']} Dataset Preparation for Chemprop")
+    print(f"{config['display_name']} Dataset Preparation for Chemprop ({split_name})")
     print("=" * 60)
 
     raw = download_csv(dataset_name)
     df = parse_dataset(raw, dataset_name)
-    create_splits(df, dataset_name)
+    create_splits(df, dataset_name, split_name)
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Prepare ESOL and Lipophilicity datasets")
     parser.add_argument(
         "--dataset",
-        choices=["esol", "lipophilicity", "all"],
+        choices=["esol", "lipophilicity", "lipo", "all"],
         default="all",
         help="Dataset to prepare",
+    )
+    parser.add_argument(
+        "--split",
+        choices=["random", "scaffold", "both"],
+        default="both",
+        help="How to split train/test sets",
     )
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
-    datasets = DATASETS.keys() if args.dataset == "all" else [args.dataset]
+    dataset_arg = "lipophilicity" if args.dataset == "lipo" else args.dataset
+    datasets = DATASETS.keys() if dataset_arg == "all" else [dataset_arg]
+    split_modes = ["random", "scaffold"] if args.split == "both" else [args.split]
     for dataset in datasets:
-        prepare_dataset(dataset)
+        for split_mode in split_modes:
+            prepare_dataset(dataset, split_mode)
 
     print("\nDone! Data is ready in:", DATA_DIR)
