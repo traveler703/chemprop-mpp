@@ -4,99 +4,99 @@
     "smiles": "CC(=O)Oc1ccccc1C(=O)O",
     "formula": "C9H8O4",
     "description": "Pain reliever / anti-inflammatory",
-    "predicted_logS": -2.883,
-    "solubility": "Low (poorly soluble)",
     "molecular_weight": 180.2,
-    "logP": 1.31
+    "logP": 1.31,
+    "predicted_logS": -2.24,
+    "solubility": "Low (poorly soluble)"
   },
   {
     "name": "Caffeine",
     "smiles": "CN1C=NC2=C1C(=O)N(C(=O)N2C)C",
     "formula": "C8H10N4O2",
     "description": "Stimulant",
-    "predicted_logS": -3.279,
-    "solubility": "Low (poorly soluble)",
     "molecular_weight": 194.2,
-    "logP": -1.03
+    "logP": -1.03,
+    "predicted_logS": -0.822,
+    "solubility": "Moderate"
   },
   {
     "name": "Benzene",
     "smiles": "c1ccccc1",
     "formula": "C6H6",
     "description": "Simple aromatic \u2014 hydrophobic",
-    "predicted_logS": -2.505,
-    "solubility": "Low (poorly soluble)",
     "molecular_weight": 78.1,
-    "logP": 1.69
+    "logP": 1.69,
+    "predicted_logS": -1.749,
+    "solubility": "Moderate"
   },
   {
     "name": "Ibuprofen",
     "smiles": "CC(C)CC1=CC=C(C=C1)C(C)C(=O)O",
     "formula": "C13H18O2",
     "description": "NSAID pain reliever",
-    "predicted_logS": -3.286,
-    "solubility": "Low (poorly soluble)",
     "molecular_weight": 206.3,
-    "logP": 3.07
+    "logP": 3.07,
+    "predicted_logS": -3.368,
+    "solubility": "Low (poorly soluble)"
   },
   {
     "name": "Paracetamol",
     "smiles": "CC(=O)NC1=CC=C(C=C1)O",
     "formula": "C8H9NO2",
     "description": "Analgesic / antipyretic",
-    "predicted_logS": -2.689,
-    "solubility": "Low (poorly soluble)",
     "molecular_weight": 151.2,
-    "logP": 1.35
+    "logP": 1.35,
+    "predicted_logS": -1.209,
+    "solubility": "Moderate"
   },
   {
     "name": "Glucose",
     "smiles": "C(C1C(C(C(C(O1)O)O)O)O)O",
     "formula": "C6H12O6",
     "description": "Sugar \u2014 very hydrophilic",
-    "predicted_logS": -2.104,
-    "solubility": "Low (poorly soluble)",
     "molecular_weight": 180.2,
-    "logP": -3.22
+    "logP": -3.22,
+    "predicted_logS": 0.535,
+    "solubility": "High (very soluble)"
   },
   {
     "name": "Testosterone",
     "smiles": "CC12CCC3C(C1CCC2O)CCC4=CC(=O)CCC34C",
     "formula": "C19H28O2",
     "description": "Steroid hormone",
-    "predicted_logS": -4.019,
-    "solubility": "Very low (insoluble)",
     "molecular_weight": 288.4,
-    "logP": 3.88
+    "logP": 3.88,
+    "predicted_logS": -4.668,
+    "solubility": "Very low (insoluble)"
   },
   {
     "name": "Vitamin C",
     "smiles": "C(C(C1C(=C(C(=O)O1)O)O)O)O",
     "formula": "C6H8O6",
     "description": "Ascorbic acid \u2014 antioxidant",
-    "predicted_logS": -2.535,
-    "solubility": "Low (poorly soluble)",
     "molecular_weight": 176.1,
-    "logP": -1.41
+    "logP": -1.41,
+    "predicted_logS": -0.032,
+    "solubility": "Moderate"
   },
   {
     "name": "Tamoxifen",
     "smiles": "CC/C(=C(/c1ccccc1)\\c2ccc(cc2)OCCN(C)C)/c3ccccc3",
     "formula": "C26H29NO",
     "description": "Breast cancer drug",
-    "predicted_logS": -4.038,
-    "solubility": "Very low (insoluble)",
     "molecular_weight": 371.5,
-    "logP": 6.0
+    "logP": 6.0,
+    "predicted_logS": -6.801,
+    "solubility": "Very low (insoluble)"
   },
   {
     "name": "Ampicillin",
     "smiles": "CC1(C(N2C(S1)C(C2=O)NC(=O)C(C3=CC=CC=C3)N)C(=O)O)C",
     "formula": "C16H19N3O4S",
     "description": "Antibiotic",
-    "predicted_logS": -3.516,
-    "solubility": "Low (poorly soluble)",
     "molecular_weight": 349.4,
-    "logP": 0.32
+    "logP": 0.32,
+    "predicted_logS": -3.059,
+    "solubility": "Low (poorly soluble)"
   }
 ]

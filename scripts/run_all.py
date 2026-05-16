@@ -81,10 +81,7 @@ def main():
         return
 
     # ── Step 2: Train Baseline ──
-    if run_step("Train Baseline Model", "train.py",
-                ["--train-data", os.path.join(PROJECT_ROOT, "data", "esol_train.csv"),
-                 "--test-data", os.path.join(PROJECT_ROOT, "data", "esol_test.csv"),
-                 "--epochs", "100"]):
+    if run_step("Train Baseline Models", "train.py", ["--epochs", "100"]):
         steps_ok += 1
     else:
         steps_fail += 1
@@ -102,13 +99,19 @@ def main():
     else:
         print("\n⏭ Skipping data scale experiment.")
 
-    # ── Step 4: Visualizations ──
+    # ── Step 4: Molecule Case Studies ──
+    if run_step("Molecule Case Studies", "molecule_cases.py"):
+        steps_ok += 1
+    else:
+        steps_fail += 1
+
+    # ── Step 5: Visualizations ──
     if run_step("Generate Visualizations", "visualize.py"):
         steps_ok += 1
     else:
         steps_fail += 1
 
-    # ── Step 5: PPT ──
+    # ── Step 6: PPT ──
     if not args.skip_ppt:
         if run_step("Create PPT Presentation", "create_ppt.py"):
             steps_ok += 1

@@ -1,0 +1,102 @@
+[
+  {
+    "name": "Aspirin",
+    "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+    "formula": "C9H8O4",
+    "description": "Pain reliever / anti-inflammatory",
+    "molecular_weight": 180.2,
+    "logP": 1.31,
+    "predicted_logD": -3.522,
+    "lipophilicity": "Low lipophilicity"
+  },
+  {
+    "name": "Caffeine",
+    "smiles": "CN1C=NC2=C1C(=O)N(C(=O)N2C)C",
+    "formula": "C8H10N4O2",
+    "description": "Stimulant",
+    "molecular_weight": 194.2,
+    "logP": -1.03,
+    "predicted_logD": -0.271,
+    "lipophilicity": "Low lipophilicity"
+  },
+  {
+    "name": "Benzene",
+    "smiles": "c1ccccc1",
+    "formula": "C6H6",
+    "description": "Simple aromatic \u2014 hydrophobic",
+    "molecular_weight": 78.1,
+    "logP": 1.69,
+    "predicted_logD": 2.706,
+    "lipophilicity": "Moderate lipophilicity"
+  },
+  {
+    "name": "Ibuprofen",
+    "smiles": "CC(C)CC1=CC=C(C=C1)C(C)C(=O)O",
+    "formula": "C13H18O2",
+    "description": "NSAID pain reliever",
+    "molecular_weight": 206.3,
+    "logP": 3.07,
+    "predicted_logD": 0.983,
+    "lipophilicity": "Low lipophilicity"
+  },
+  {
+    "name": "Paracetamol",
+    "smiles": "CC(=O)NC1=CC=C(C=C1)O",
+    "formula": "C8H9NO2",
+    "description": "Analgesic / antipyretic",
+    "molecular_weight": 151.2,
+    "logP": 1.35,
+    "predicted_logD": -0.043,
+    "lipophilicity": "Low lipophilicity"
+  },
+  {
+    "name": "Glucose",
+    "smiles": "C(C1C(C(C(C(O1)O)O)O)O)O",
+    "formula": "C6H12O6",
+    "description": "Sugar \u2014 very hydrophilic",
+    "molecular_weight": 180.2,
+    "logP": -3.22,
+    "predicted_logD": -2.766,
+    "lipophilicity": "Low lipophilicity"
+  },
+  {
+    "name": "Testosterone",
+    "smiles": "CC12CCC3C(C1CCC2O)CCC4=CC(=O)CCC34C",
+    "formula": "C19H28O2",
+    "description": "Steroid hormone",
+    "molecular_weight": 288.4,
+    "logP": 3.88,
+    "predicted_logD": 3.206,
+    "lipophilicity": "High lipophilicity"
+  },
+  {
+    "name": "Vitamin C",
+    "smiles": "C(C(C1C(=C(C(=O)O1)O)O)O)O",
+    "formula": "C6H8O6",
+    "description": "Ascorbic acid \u2014 antioxidant",
+    "molecular_weight": 176.1,
+    "logP": -1.41,
+    "predicted_logD": -1.035,
+    "lipophilicity": "Low lipophilicity"
+  },
+  {
+    "name": "Tamoxifen",
+    "smiles": "CC/C(=C(/c1ccccc1)\\c2ccc(cc2)OCCN(C)C)/c3ccccc3",
+    "formula": "C26H29NO",
+    "description": "Breast cancer drug",
+    "molecular_weight": 371.5,
+    "logP": 6.0,
+    "predicted_logD": 3.649,
+    "lipophilicity": "High lipophilicity"
+  },
+  {
+    "name": "Ampicillin",
+    "smiles": "CC1(C(N2C(S1)C(C2=O)NC(=O)C(C3=CC=CC=C3)N)C(=O)O)C",
+    "formula": "C16H19N3O4S",
+    "description": "Antibiotic",
+    "molecular_weight": 349.4,
+    "logP": 0.32,
+    "predicted_logD": -1.649,
+    "lipophilicity": "Low lipophilicity"
+  }
+]

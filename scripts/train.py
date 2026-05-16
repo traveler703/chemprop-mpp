@@ -1,9 +1,10 @@
 """
-train.py — Train a Chemprop MPNN model on the ESOL solubility dataset.
+train.py — Train a Chemprop MPNN model on a molecular property dataset.
 
 Usage:
-    python train.py                           # Full training
+    python train.py                           # Train ESOL and Lipophilicity baselines
     python train.py --train-data ../data/esol_train_50.csv  # Subset training
+    python train.py --train-data ../data/lipo_train.csv --test-data ../data/lipo_test.csv
     python train.py --epochs 100 --batch-size 32
 """
 
@@ -28,13 +29,30 @@ DATA_DIR = os.path.join(PROJECT_ROOT, "data")
 MODELS_DIR = os.path.join(PROJECT_ROOT, "models")
 os.makedirs(MODELS_DIR, exist_ok=True)
 
+DEFAULT_DATASETS = {
+    "esol": {
+        "name": "ESOL",
+        "train": os.path.join(DATA_DIR, "esol_train.csv"),
+        "test": os.path.join(DATA_DIR, "esol_test.csv"),
+    },
+    "lipophilicity": {
+        "name": "Lipophilicity",
+        "train": os.path.join(DATA_DIR, "lipo_train.csv"),
+        "test": os.path.join(DATA_DIR, "lipo_test.csv"),
+    },
+}
+
 
 def parse_args():
-    p = argparse.ArgumentParser(description="Train Chemprop on ESOL")
+    p = argparse.ArgumentParser(description="Train Chemprop on a molecular property dataset")
+    p.add_argument("--dataset", choices=["esol", "lipophilicity", "all"], default="all",
+                   help="Dataset to train when train/test CSVs are not specified")
     p.add_argument("--train-data", default=os.path.join(DATA_DIR, "esol_train.csv"),
                    help="Path to training CSV")
     p.add_argument("--test-data", default=os.path.join(DATA_DIR, "esol_test.csv"),
                    help="Path to test CSV")
+    p.add_argument("--target-column", default="target",
+                   help="Name of the regression target column")
     p.add_argument("--epochs", type=int, default=100, help="Max epochs")
     p.add_argument("--batch-size", type=int, default=64)
     p.add_argument("--lr", type=float, default=1e-3)
@@ -59,16 +77,40 @@ def set_seed(seed: int):
         torch.cuda.manual_seed_all(seed)
 
 
-def load_data(train_path: str, test_path: str):
+def resolve_target_column(df: pd.DataFrame, requested_column: str) -> str:
+    """Return the target column, with a fallback for older ESOL CSV files."""
+    if requested_column in df.columns:
+        return requested_column
+    if requested_column == "target" and "logS" in df.columns:
+        print("WARNING: 'target' column not found; using legacy 'logS' column.")
+        return "logS"
+    raise ValueError(
+        f"Target column '{requested_column}' not found. Available columns: {list(df.columns)}"
+    )
+
+
+def load_data(train_path: str, test_path: str, target_column: str):
     """Load CSV data and return DataFrames."""
     train_df = pd.read_csv(train_path)
     test_df = pd.read_csv(test_path)
+    resolved_target = resolve_target_column(train_df, target_column)
+    if resolved_target not in test_df.columns:
+        raise ValueError(
+            f"Target column '{resolved_target}' not found in test data. "
+            f"Available columns: {list(test_df.columns)}"
+        )
+    if "smiles" not in train_df.columns or "smiles" not in test_df.columns:
+        raise ValueError("Both train and test CSV files must contain a 'smiles' column.")
+
     print(f"Train: {len(train_df)} rows, Test: {len(test_df)} rows")
-    print(f"Train LogS range: [{train_df['logS'].min():.3f}, {train_df['logS'].max():.3f}]")
-    return train_df, test_df
+    print(
+        f"Train target range: "
+        f"[{train_df[resolved_target].min():.3f}, {train_df[resolved_target].max():.3f}]"
+    )
+    return train_df, test_df, resolved_target
 
 
-def train_chemprop_v2(train_df, test_df, args):
+def train_chemprop_v2(train_df, test_df, args, target_column: str):
     """
     Train using Chemprop v2 Python API.
 
@@ -87,11 +129,11 @@ def train_chemprop_v2(train_df, test_df, args):
 
     # Create datapoints
     train_dps = [
-        MoleculeDatapoint.from_smi(row["smiles"], y=np.array([row["logS"]], dtype=float))
+        MoleculeDatapoint.from_smi(row["smiles"], y=np.array([row[target_column]], dtype=float))
         for _, row in train_df.iterrows()
     ]
     test_dps = [
-        MoleculeDatapoint.from_smi(row["smiles"], y=np.array([row["logS"]], dtype=float))
+        MoleculeDatapoint.from_smi(row["smiles"], y=np.array([row[target_column]], dtype=float))
         for _, row in test_df.iterrows()
     ]
 
@@ -219,6 +261,7 @@ def train_chemprop_v2(train_df, test_df, args):
     results = {
         "n_train": len(train_df),
         "n_test": len(test_df),
+        "target_column": target_column,
         "epochs_run": epoch + 1,
         "best_epoch": best_epoch,
         "train_time_s": round(train_time, 1),
@@ -272,12 +315,33 @@ def evaluate_model(model, loader, scaler, device):
     return np.array(all_targets), np.array(all_preds)
 
 
-def main():
-    args = parse_args()
+def has_explicit_data_args() -> bool:
+    """Check whether the user passed custom train/test CSV paths."""
+    return any(
+        arg == "--train-data" or arg.startswith("--train-data=")
+        or arg == "--test-data" or arg.startswith("--test-data=")
+        for arg in sys.argv[1:]
+    )
+
+
+def make_dataset_args(args, dataset_key: str, reset_outputs: bool = False):
+    """Create an argparse namespace for one default dataset run."""
+    dataset = DEFAULT_DATASETS[dataset_key]
+    run_args = argparse.Namespace(**vars(args))
+    run_args.train_data = dataset["train"]
+    run_args.test_data = dataset["test"]
+    if reset_outputs:
+        run_args.output = None
+        run_args.model_save = None
+    return run_args
+
+
+def run_training(args):
+    """Train one model and save its results/checkpoint."""
     set_seed(args.seed)
 
     print("=" * 60)
-    print("Chemprop MPNN Training — ESOL Solubility Prediction")
+    print("Chemprop MPNN Training — Molecular Property Prediction")
     print("=" * 60)
     print(f"Train data: {args.train_data}")
     print(f"Test data:  {args.test_data}")
@@ -285,8 +349,8 @@ def main():
     print(f"Epochs:     {args.epochs}")
     print()
 
-    train_df, test_df = load_data(args.train_data, args.test_data)
-    model, results = train_chemprop_v2(train_df, test_df, args)
+    train_df, test_df, target_column = load_data(args.train_data, args.test_data, args.target_column)
+    model, results = train_chemprop_v2(train_df, test_df, args, target_column)
 
     # Save results
     if args.output is None:
@@ -308,6 +372,22 @@ def main():
         "results": {k: v for k, v in results.items() if k not in ("predictions", "targets", "train_losses", "val_losses")},
     }, args.model_save)
     print(f"Model saved to: {args.model_save}")
+    return results
+
+
+def main():
+    args = parse_args()
+
+    if not has_explicit_data_args() and args.dataset == "all":
+        for dataset_key in ("esol", "lipophilicity"):
+            print(f"\n\n### Default baseline: {DEFAULT_DATASETS[dataset_key]['name']} ###")
+            run_training(make_dataset_args(args, dataset_key, reset_outputs=True))
+        return
+
+    if not has_explicit_data_args() and args.dataset in DEFAULT_DATASETS:
+        args = make_dataset_args(args, args.dataset)
+
+    run_training(args)
 
 
 if __name__ == "__main__":
