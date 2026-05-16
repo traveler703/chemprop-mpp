@@ -2,8 +2,8 @@
 REM === Chemprop Workshop Environment Setup ===
 REM Run this in Anaconda Prompt or with conda in PATH
 
-echo Creating conda environment 'chemprop-workshop' with Python 3.10...
-conda create -n chemprop-workshop python=3.10 -y
+echo Creating conda environment 'chemprop-workshop' with Python 3.11...
+conda create -n chemprop-workshop python=3.11 -y
 
 echo Activating environment...
 call conda activate chemprop-workshop

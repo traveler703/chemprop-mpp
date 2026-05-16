@@ -2,11 +2,12 @@
 run_all.py — Run the complete workshop pipeline.
 
 Steps:
-  1. Prepare ESOL dataset
-  2. Train baseline Chemprop model (100% data)
-  3. Run data scale experiment (20/50/80/100%)
-  4. Generate visualizations
-  5. Create PPT presentation
+  1. Prepare ESOL + Lipophilicity datasets (random + scaffold)
+  2. Train baseline Chemprop models (random split)
+  3. Run RF baseline (random + scaffold)
+  4. Run data scale experiment (20/50/80/100%, random split)
+  5. Generate visualizations
+  6. Create PPT presentation
 
 Usage:
     python run_all.py                  # Run everything
@@ -56,6 +57,8 @@ def main():
                         help="Only prepare the dataset")
     parser.add_argument("--only-train", action="store_true",
                         help="Only train baseline model")
+    parser.add_argument("--skip-rf", action="store_true",
+                        help="Skip Random Forest baseline")
     args = parser.parse_args()
 
     print("=" * 60)
@@ -69,7 +72,7 @@ def main():
     steps_fail = 0
 
     # ── Step 1: Prepare Data ──
-    if run_step("Prepare ESOL Dataset", "prepare_data.py"):
+    if run_step("Prepare Datasets (Random + Scaffold)", "prepare_data.py", ["--split", "both"]):
         steps_ok += 1
     else:
         steps_fail += 1
@@ -81,7 +84,7 @@ def main():
         return
 
     # ── Step 2: Train Baseline ──
-    if run_step("Train Baseline Models", "train.py", ["--epochs", "100"]):
+    if run_step("Train Baseline Models (Random Split)", "train.py", ["--epochs", "100", "--split", "random"]):
         steps_ok += 1
     else:
         steps_fail += 1
@@ -90,7 +93,16 @@ def main():
         print("\nDone (baseline training only).")
         return
 
-    # ── Step 3: Data Scale Experiment ──
+    # ── Step 3: Random Forest Baseline ──
+    if not args.skip_rf:
+        if run_step("Random Forest Baseline (Random + Scaffold)", "baseline_rf.py", ["--dataset", "all", "--split", "all"]):
+            steps_ok += 1
+        else:
+            steps_fail += 1
+    else:
+        print("\n⏭ Skipping Random Forest baseline.")
+
+    # ── Step 4: Data Scale Experiment ──
     if not args.skip_scales:
         if run_step("Data Scale Experiment", "data_scale_experiment.py"):
             steps_ok += 1
@@ -99,19 +111,19 @@ def main():
     else:
         print("\n⏭ Skipping data scale experiment.")
 
-    # ── Step 4: Molecule Case Studies ──
+    # ── Step 5: Molecule Case Studies ──
     if run_step("Molecule Case Studies", "molecule_cases.py"):
         steps_ok += 1
     else:
         steps_fail += 1
 
-    # ── Step 5: Visualizations ──
+    # ── Step 6: Visualizations ──
     if run_step("Generate Visualizations", "visualize.py"):
         steps_ok += 1
     else:
         steps_fail += 1
 
-    # ── Step 6: PPT ──
+    # ── Step 7: PPT ──
     if not args.skip_ppt:
         if run_step("Create PPT Presentation", "create_ppt.py"):
             steps_ok += 1

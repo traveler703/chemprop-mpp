@@ -61,7 +61,7 @@ python -c "import chemprop; import torch; import rdkit; print('OK')"
 python scripts/run_all.py
 ```
 
-这会依次执行：数据准备 → 训练 ESOL 和 Lipophilicity baseline → 双数据集数据规模实验 → 生成双数据集图表 → 创建 PPT。
+这会依次执行：数据准备（random+scaffold）→ 训练 ESOL 和 Lipophilicity Chemprop baseline（random）→ Random Forest baseline（random+scaffold）→ 双数据集数据规模实验（random）→ 生成双数据集图表 → 创建 PPT。
 
 如果想加速（跳过数据规模实验，省约 20-40 分钟）：
 
@@ -78,16 +78,19 @@ python scripts/prepare_data.py
 # Step 2: 训练 baseline 模型（ESOL + Lipophilicity）
 python scripts/train.py
 
-# Step 3: 数据规模实验（ESOL + Lipophilicity，可选，耗时较长）
+# Step 3: Random Forest baseline（ESOL + Lipophilicity，random+scaffold）
+python scripts/baseline_rf.py --dataset all --split all
+
+# Step 4: 数据规模实验（ESOL + Lipophilicity，可选，耗时较长）
 python scripts/data_scale_experiment.py
 
-# Step 4: 分子案例分析（ESOL + Lipophilicity）
+# Step 5: 分子案例分析（ESOL + Lipophilicity）
 python scripts/molecule_cases.py
 
-# Step 5: 生成所有图表（ESOL + Lipophilicity）
+# Step 6: 生成所有图表（ESOL + Lipophilicity）
 python scripts/visualize.py
 
-# Step 6: 生成 PPT
+# Step 7: 生成 PPT
 python scripts/create_ppt.py
 ```
 
@@ -119,6 +122,23 @@ jupyter notebook demo.ipynb
 - 固定测试集
 - 每个规模 3 次重复 → 误差棒
 - 展示 RMSE 和 R² 随训练数据量增加的变化
+
+### 新增增强实验
+- **Random Forest baseline**：RDKit 描述符 + `RandomForestRegressor`，用于与 Chemprop MPNN 对比。
+- **random split vs scaffold split**：在同一数据集上比较随机划分和 Bemis-Murcko 骨架划分，分析模型化学泛化能力。
+
+常用命令：
+
+```bash
+# 1) 同时准备 random + scaffold 划分
+python scripts/prepare_data.py --dataset all --split both
+
+# 2) 训练 Chemprop baseline（默认 random split）
+python scripts/train.py --dataset all --split random
+
+# 3) 跑 RF baseline（random + scaffold）
+python scripts/baseline_rf.py --dataset all --split all
+```
 
 ## 数据集
 

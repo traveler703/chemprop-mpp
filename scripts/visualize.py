@@ -361,10 +361,14 @@ def figure_5_molecule_examples():
 
 def load_baseline_results_for_dataset(dataset_key: str, config: dict):
     """Load baseline results for one dataset."""
-    path = os.path.join(MODELS_DIR, f"results_{config['result_prefix']}_train.json")
-    if os.path.exists(path):
-        with open(path) as f:
-            return json.load(f)
+    candidate_paths = [
+        os.path.join(MODELS_DIR, f"results_{config['result_prefix']}_random_train.json"),
+        os.path.join(MODELS_DIR, f"results_{config['result_prefix']}_train.json"),
+    ]
+    for path in candidate_paths:
+        if os.path.exists(path):
+            with open(path) as f:
+                return json.load(f)
 
     scale_path = os.path.join(RESULTS_DIR, f"results_{dataset_key}_scale100_rep0.json")
     if os.path.exists(scale_path):

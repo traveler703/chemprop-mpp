@@ -5,8 +5,8 @@ set -e
 
 ENV_NAME="chemprop-workshop"
 
-echo "Creating conda environment '${ENV_NAME}' with Python 3.10..."
-conda create -n ${ENV_NAME} python=3.10 -y
+echo "Creating conda environment '${ENV_NAME}' with Python 3.11..."
+conda create -n ${ENV_NAME} python=3.11 -y
 
 echo "Activating environment..."
 source $(conda info --base)/etc/profile.d/conda.sh
