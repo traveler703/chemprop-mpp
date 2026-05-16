@@ -181,11 +181,20 @@ def save_result_json(result: dict):
 
 def load_chemprop_metric(dataset_key: str, split: str):
     prefix = DATASETS[dataset_key]["prefix"]
-    path = os.path.join(MODELS_DIR, f"results_{prefix}_{split}_train.json")
-    if not os.path.exists(path):
-        return None
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    candidate_paths = [
+        os.path.join(MODELS_DIR, f"results_{prefix}_{split}_train.json"),
+    ]
+    if split == "random":
+        candidate_paths.extend([
+            os.path.join(MODELS_DIR, f"results_{prefix}_train.json"),
+            os.path.join(MODELS_DIR, f"results_{prefix}_train_100.json"),
+        ])
+
+    for path in candidate_paths:
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+    return None
 
 
 def make_model_comparison_plot(results: List[dict]):

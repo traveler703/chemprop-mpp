@@ -12,6 +12,7 @@ import sys
 import json
 import subprocess
 import numpy as np
+import pandas as pd
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(PROJECT_ROOT, "data")
@@ -55,6 +56,21 @@ def run_training(train_csv: str, test_csv: str, seed: int, output_json: str) -> 
         return None
     with open(output_json) as f:
         return json.load(f)
+
+
+def sample_training_subset(prefix: str, scale: int, seed: int) -> str:
+    """Create one repeat-specific training subset sampled from the full random train split."""
+    full_train_csv = os.path.join(DATA_DIR, f"{prefix}_random_train.csv")
+    if not os.path.exists(full_train_csv):
+        raise FileNotFoundError(f"Missing full training split: {full_train_csv}")
+
+    full_train = pd.read_csv(full_train_csv)
+    n_subset = max(10, int(len(full_train) * scale / 100))
+    subset = full_train.sample(n=n_subset, replace=False, random_state=seed).reset_index(drop=True)
+
+    subset_path = os.path.join(DATA_DIR, f"{prefix}_random_train_{scale}_seed{seed}.csv")
+    subset.to_csv(subset_path, index=False)
+    return subset_path
 
 
 def summarize_results(all_results: dict) -> dict:
@@ -108,9 +124,9 @@ def run_dataset(dataset_key: str, config: dict) -> dict:
         print(f"Scale: {scale}% training data")
         print(f"{'─'*40}")
 
-        train_csv = os.path.join(DATA_DIR, f"{config['prefix']}_random_train_{scale}.csv")
+        full_train_csv = os.path.join(DATA_DIR, f"{config['prefix']}_random_train.csv")
 
-        if not os.path.exists(train_csv) or not os.path.exists(config["test_csv"]):
+        if not os.path.exists(full_train_csv) or not os.path.exists(config["test_csv"]):
             print("  WARNING: Dataset files not found. Running prepare_data.py first...")
             subprocess.run([sys.executable, os.path.join(PROJECT_ROOT, "scripts", "prepare_data.py"), "--split", "random"],
                            cwd=PROJECT_ROOT)
@@ -123,6 +139,7 @@ def run_dataset(dataset_key: str, config: dict) -> dict:
             )
             print(f"\n  Repeat {rep+1}/{N_REPEATS} (seed={seed})")
 
+            train_csv = sample_training_subset(config["prefix"], scale, seed)
             res = run_training(train_csv, config["test_csv"], seed, output_json)
             if res:
                 scale_runs.append({

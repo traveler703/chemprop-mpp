@@ -16,6 +16,25 @@ env/
 # Local environment and logs
 .env
 *.log
+*.local-backup.md
+
+# Generated datasets
+data/*.csv
+!data/.gitkeep
+
+# Generated model checkpoints and metrics
+models/*.pt
+models/*.json
+!models/.gitkeep
+
+# Generated figures and experiment outputs
+results/*.png
+results/*.json
+!results/.gitkeep
+
+# Generated presentations
+ppt/*.pptx
+!ppt/.gitkeep
 
 # OS/editor noise
 .DS_Store

@@ -6,7 +6,7 @@
     "description": "Pain reliever / anti-inflammatory",
     "molecular_weight": 180.2,
     "logP": 1.31,
-    "predicted_logD": -3.522,
+    "predicted_logD": -3.067,
     "lipophilicity": "Low lipophilicity"
   },
   {
@@ -16,7 +16,7 @@
     "description": "Stimulant",
     "molecular_weight": 194.2,
     "logP": -1.03,
-    "predicted_logD": -0.271,
+    "predicted_logD": -0.013,
     "lipophilicity": "Low lipophilicity"
   },
   {
@@ -26,7 +26,7 @@
     "description": "Simple aromatic \u2014 hydrophobic",
     "molecular_weight": 78.1,
     "logP": 1.69,
-    "predicted_logD": 2.706,
+    "predicted_logD": 2.611,
     "lipophilicity": "Moderate lipophilicity"
   },
   {
@@ -36,7 +36,7 @@
     "description": "NSAID pain reliever",
     "molecular_weight": 206.3,
     "logP": 3.07,
-    "predicted_logD": 0.983,
+    "predicted_logD": 0.621,
     "lipophilicity": "Low lipophilicity"
   },
   {
@@ -46,7 +46,7 @@
     "description": "Analgesic / antipyretic",
     "molecular_weight": 151.2,
     "logP": 1.35,
-    "predicted_logD": -0.043,
+    "predicted_logD": 0.016,
     "lipophilicity": "Low lipophilicity"
   },
   {
@@ -56,7 +56,7 @@
     "description": "Sugar \u2014 very hydrophilic",
     "molecular_weight": 180.2,
     "logP": -3.22,
-    "predicted_logD": -2.766,
+    "predicted_logD": -2.199,
     "lipophilicity": "Low lipophilicity"
   },
   {
@@ -66,7 +66,7 @@
     "description": "Steroid hormone",
     "molecular_weight": 288.4,
     "logP": 3.88,
-    "predicted_logD": 3.206,
+    "predicted_logD": 3.565,
     "lipophilicity": "High lipophilicity"
   },
   {
@@ -76,7 +76,7 @@
     "description": "Ascorbic acid \u2014 antioxidant",
     "molecular_weight": 176.1,
     "logP": -1.41,
-    "predicted_logD": -1.035,
+    "predicted_logD": -2.015,
     "lipophilicity": "Low lipophilicity"
   },
   {
@@ -86,7 +86,7 @@
     "description": "Breast cancer drug",
     "molecular_weight": 371.5,
     "logP": 6.0,
-    "predicted_logD": 3.649,
+    "predicted_logD": 3.951,
     "lipophilicity": "High lipophilicity"
   },
   {
@@ -96,7 +96,7 @@
     "description": "Antibiotic",
     "molecular_weight": 349.4,
     "logP": 0.32,
-    "predicted_logD": -1.649,
+    "predicted_logD": -1.762,
     "lipophilicity": "Low lipophilicity"
   }
 ]

@@ -18,6 +18,7 @@ import warnings
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.model_selection import train_test_split
 
 import torch
 
@@ -63,6 +64,8 @@ def parse_args():
     p.add_argument("--depth", type=int, default=5, help="Number of message-passing layers")
     p.add_argument("--dropout", type=float, default=0.1)
     p.add_argument("--seed", type=int, default=42)
+    p.add_argument("--val-size", type=float, default=0.1,
+                   help="Fraction of the training CSV held out for validation/early stopping")
     p.add_argument("--output", default=None,
                    help="Output path for results JSON")
     p.add_argument("--model-save", default=None,
@@ -127,10 +130,26 @@ def train_chemprop_v2(train_df, test_df, args, target_column: str):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
+    if not 0 < args.val_size < 0.5:
+        raise ValueError("--val-size must be between 0 and 0.5")
+
+    fit_df, val_df = train_test_split(
+        train_df,
+        test_size=args.val_size,
+        random_state=args.seed,
+    )
+    fit_df = fit_df.reset_index(drop=True)
+    val_df = val_df.reset_index(drop=True)
+    print(f"Fit: {len(fit_df)} rows, Val: {len(val_df)} rows, Test: {len(test_df)} rows")
+
     # Create datapoints
     train_dps = [
         MoleculeDatapoint.from_smi(row["smiles"], y=np.array([row[target_column]], dtype=float))
-        for _, row in train_df.iterrows()
+        for _, row in fit_df.iterrows()
+    ]
+    val_dps = [
+        MoleculeDatapoint.from_smi(row["smiles"], y=np.array([row[target_column]], dtype=float))
+        for _, row in val_df.iterrows()
     ]
     test_dps = [
         MoleculeDatapoint.from_smi(row["smiles"], y=np.array([row[target_column]], dtype=float))
@@ -139,14 +158,17 @@ def train_chemprop_v2(train_df, test_df, args, target_column: str):
 
     # Create datasets
     train_dataset = MoleculeDataset(train_dps)
+    val_dataset = MoleculeDataset(val_dps)
     test_dataset = MoleculeDataset(test_dps)
 
     # Normalize targets
     scaler = train_dataset.normalize_targets()
+    val_dataset.normalize_targets(scaler)
     test_dataset.normalize_targets(scaler)
 
     # Build dataloaders
     train_loader = build_dataloader(train_dataset, batch_size=args.batch_size, shuffle=True)
+    val_loader = build_dataloader(val_dataset, batch_size=args.batch_size, shuffle=False)
     test_loader = build_dataloader(test_dataset, batch_size=args.batch_size, shuffle=False)
 
     # Build model
@@ -205,7 +227,7 @@ def train_chemprop_v2(train_df, test_df, args, target_column: str):
         model.eval()
         total_val_loss = 0.0
         with torch.no_grad():
-            for batch in test_loader:
+            for batch in val_loader:
                 bmg = batch.bmg
                 bmg.to(device)
                 V_d = batch.V_d.to(device) if batch.V_d is not None else None
@@ -216,15 +238,13 @@ def train_chemprop_v2(train_df, test_df, args, target_column: str):
                 loss = loss_fn(preds, targets)
                 total_val_loss += loss.item() * len(targets)
 
-        avg_val_loss = total_val_loss / len(test_dataset)
+        avg_val_loss = total_val_loss / len(val_dataset)
 
         # ── Un-normalized metrics ──
-        # Evaluate on test set in original scale
-        y_true, y_pred = evaluate_model(
-            model, test_loader, scaler, device
-        )
-        rmse = np.sqrt(mean_squared_error(y_true, y_pred))
-        r2 = r2_score(y_true, y_pred)
+        # Track validation metrics in original scale without touching the test set.
+        y_val_true, y_val_pred = evaluate_model(model, val_loader, scaler, device)
+        val_rmse = np.sqrt(mean_squared_error(y_val_true, y_val_pred))
+        val_r2 = r2_score(y_val_true, y_val_pred)
 
         train_losses.append(avg_train_loss)
         val_losses.append(avg_val_loss)
@@ -235,7 +255,7 @@ def train_chemprop_v2(train_df, test_df, args, target_column: str):
             print(f"Epoch {epoch+1:3d}/{args.epochs} | "
                   f"TrainLoss: {avg_train_loss:.4f} | "
                   f"ValLoss: {avg_val_loss:.4f} | "
-                  f"RMSE: {rmse:.3f} | R2: {r2:.3f}")
+                  f"ValRMSE: {val_rmse:.3f} | ValR2: {val_r2:.3f}")
 
         # Early stopping
         if avg_val_loss < best_val_loss:
@@ -259,7 +279,9 @@ def train_chemprop_v2(train_df, test_df, args, target_column: str):
     y_true, y_pred = evaluate_model(model, test_loader, scaler, device)
 
     results = {
-        "n_train": len(train_df),
+        "n_train_input": len(train_df),
+        "n_train": len(fit_df),
+        "n_val": len(val_df),
         "n_test": len(test_df),
         "target_column": target_column,
         "epochs_run": epoch + 1,
@@ -272,6 +294,7 @@ def train_chemprop_v2(train_df, test_df, args, target_column: str):
         "targets": [float(x) for x in y_true],
         "train_losses": train_losses,
         "val_losses": val_losses,
+        "_target_scaler": scaler,
     }
 
     print(f"\n=== Final Results ===")
@@ -354,6 +377,7 @@ def run_training(args):
 
     train_df, test_df, target_column = load_data(args.train_data, args.test_data, args.target_column)
     model, results = train_chemprop_v2(train_df, test_df, args, target_column)
+    target_scaler = results.pop("_target_scaler")
 
     # Save results
     if args.output is None:
@@ -371,6 +395,7 @@ def run_training(args):
 
     torch.save({
         "model_state": model.state_dict(),
+        "target_scaler": target_scaler,
         "args": vars(args),
         "results": {k: v for k, v in results.items() if k not in ("predictions", "targets", "train_losses", "val_losses")},
     }, args.model_save)

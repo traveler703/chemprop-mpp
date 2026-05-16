@@ -101,7 +101,10 @@ def load_model(dataset_key: str, config: dict):
 
     print(f"Loading model: {model_path}")
 
-    checkpoint = torch.load(model_path, map_location=device)
+    try:
+        checkpoint = torch.load(model_path, map_location=device, weights_only=False)
+    except TypeError:
+        checkpoint = torch.load(model_path, map_location=device)
     ckpt_args = checkpoint.get("args", {}) if isinstance(checkpoint, dict) else {}
     hidden_size = int(ckpt_args.get("hidden_size", 300))
     depth = int(ckpt_args.get("depth", 5))
@@ -129,7 +132,9 @@ def load_model(dataset_key: str, config: dict):
 
     model.to(device)
     model.eval()
-    scaler = build_target_scaler(train_csv)
+    scaler = checkpoint.get("target_scaler") if isinstance(checkpoint, dict) else None
+    if scaler is None:
+        scaler = build_target_scaler(train_csv)
     return model, device, scaler
 
 
