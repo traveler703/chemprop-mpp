@@ -19,6 +19,10 @@ header-includes:
     \AtBeginEnvironment{longtable}{\footnotesize}
 ---
 
+# GitHub Repository
+
+https://github.com/yu2486789817/chemprop-mpp/tree/main
+
 # Abstract
 
 Predicting absorption, distribution, metabolism, excretion and toxicity
